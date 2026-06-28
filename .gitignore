@@ -23,6 +23,14 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# NX
+.nx/cache/
+.nx/installation/
+.nx/workspace-data/
+
+# Node / JS
+node_modules/
+
 # .NET Core
 project.lock.json
 project.fragment.lock.json
