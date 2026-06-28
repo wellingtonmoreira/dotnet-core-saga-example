@@ -1,0 +1,71 @@
+sequenceDiagram
+    participant Client@{ "type": "boundary"} as Client Application
+    participant OrderService as Order Service
+    participant EventChannel@{ "type": "queue" }
+    participant FlightService as Flight Service
+    participant CommandChannel@{ "type": "queue" }
+    participant AccommodationService as Accommodation Service
+    participant VehicleHireService as Vehicle Hire Service
+    Client->>OrderService: Place "Travel Package" Order
+    OrderService->>OrderService: Create Order with status = "pending"
+    OrderService->>EventChannel: Publish "ORDER_CREATED_EVENT"
+    OrderService->>Client: Return "pending" Order
+    EventChannel-->>OrderService: Consume "ORDER_CREATED_EVENT"
+    OrderService->>OrderService: Create "Travel Package" Saga
+    OrderService->>CommandChannel: Publish "FLIGHT_RESERVATION_CREATE_COMMAND"
+    CommandChannel-->>FlightService: Consume "FLIGHT_RESERVATION_CREATE_COMMAND"
+    FlightService->>FlightService: Reserve Flight
+    break Flight Reservation Failed
+        FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_FAILED_EVENT"
+        EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_FAILED_EVENT"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
+    end
+    FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CREATED_EVENT"
+    EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_CREATED_EVENT"
+    OrderService->>OrderService: Update "Travel Package" Saga
+    OrderService->>CommandChannel: Publish "ACCOMMODATION_RESERVATION_CREATE_COMMAND"
+    CommandChannel-->>AccommodationService: Consume "ACCOMMODATION_RESERVATION_CREATE_COMMAND"
+    AccommodationService->>AccommodationService: Reserve accommodation
+    break Accommodation Reservation Failed
+        AccommodationService->>EventChannel: Publish "ACCOMMODATION_RESERVATION_FAILED_EVENT"
+        EventChannel-->>OrderService: Consume "ACCOMMODATION_RESERVATION_FAILED_EVENT"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>CommandChannel: Publish "FLIGHT_RESERVATION_CANCEL_COMMAND"
+        CommandChannel-->>FlightService: Consume "FLIGHT_RESERVATION_CANCEL_COMMAND"
+        FlightService->>FlightService: Cancel Flight reservation
+        FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CANCELLED_EVENT"
+        EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_CANCELLED_EVENT"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
+    end
+    AccommodationService->>EventChannel: Publish "ACCOMMODATION_RESERVATION_COMPLETED_EVENT"
+    EventChannel-->>OrderService: Consume "ACCOMMODATION_RESERVATION_COMPLETED_EVENT"
+    OrderService->>OrderService: Update "Travel Package" Saga
+    OrderService->>CommandChannel: Publish "VEHICLE_HIRE_RESERVATION_CREATE_COMMAND"
+    CommandChannel-->>VehicleHireService: Consume "VEHICLE_HIRE_RESERVATION_CREATE_COMMAND"
+    VehicleHireService->>VehicleHireService: Reserve Vehicle Hire
+    break Vehicle Hire Reservation Failed
+        VehicleHireService->>EventChannel: Publish "VEHICLE_HIRE_RESERVATION_FAILED_EVENT"
+        EventChannel-->>OrderService: Consume "VEHICLE_HIRE_RESERVATION_FAILED_EVENT"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>CommandChannel: Publish "ACCOMMODATION_CANCEL_RESERVATION_COMMAND"
+        CommandChannel-->>FlightService: Consume "ACCOMMODATION_CANCEL_RESERVATION_COMMAND"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>CommandChannel: Publish "FLIGHT_CANCEL_RESERVATION_COMMAND"
+        CommandChannel-->>FlightService: Consume "FLIGHT_CANCEL_RESERVATION_COMMAND"
+        FlightService->>FlightService: Cancel Flight reservation
+        FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CANCELLED_EVENT"
+        EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_CANCELLED_EVENT"
+        OrderService->>OrderService: Update "Travel Package" Saga
+        OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
+    end
+    VehicleHireService->>EventChannel: Publish "VEHICLE_HIRE_RESERVATION_COMPLETED_COMMAND"
+    EventChannel-->>OrderService: Consume "VEHICLE_HIRE_RESERVATION_COMPLETED_COMMAND"
+    OrderService->>OrderService: Update "Travel Package" Saga
+    OrderService->>OrderService: Update Order status = "completed"
+    OrderService->>EventChannel: Publish "ORDER_COMPLETED_EVENT"
+    
