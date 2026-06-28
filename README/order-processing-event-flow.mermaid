@@ -1,5 +1,5 @@
 sequenceDiagram
-    participant Client@{ "type": "boundary"} as Client Application
+    participant Client@{ "type": "boundary" } as Client Application
     participant OrderService as Order Service
     participant EventChannel@{ "type": "queue" }
     participant FlightService as Flight Service
@@ -7,19 +7,19 @@ sequenceDiagram
     participant AccommodationService as Accommodation Service
     participant VehicleHireService as Vehicle Hire Service
     Client->>OrderService: Place "Travel Package" Order
+    OrderService->>OrderService: Create "Travel Package" Saga
     OrderService->>OrderService: Create Order with status = "pending"
     OrderService->>EventChannel: Publish "ORDER_CREATED_EVENT"
     OrderService->>Client: Return "pending" Order
     EventChannel-->>OrderService: Consume "ORDER_CREATED_EVENT"
-    OrderService->>OrderService: Create "Travel Package" Saga
     OrderService->>CommandChannel: Publish "FLIGHT_RESERVATION_CREATE_COMMAND"
     CommandChannel-->>FlightService: Consume "FLIGHT_RESERVATION_CREATE_COMMAND"
     FlightService->>FlightService: Reserve Flight
     break Flight Reservation Failed
         FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_FAILED_EVENT"
         EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_FAILED_EVENT"
-        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
     end
     FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CREATED_EVENT"
@@ -37,8 +37,8 @@ sequenceDiagram
         FlightService->>FlightService: Cancel Flight reservation
         FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CANCELLED_EVENT"
         EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_CANCELLED_EVENT"
-        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
     end
     AccommodationService->>EventChannel: Publish "ACCOMMODATION_RESERVATION_COMPLETED_EVENT"
@@ -52,20 +52,22 @@ sequenceDiagram
         EventChannel-->>OrderService: Consume "VEHICLE_HIRE_RESERVATION_FAILED_EVENT"
         OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>CommandChannel: Publish "ACCOMMODATION_CANCEL_RESERVATION_COMMAND"
-        CommandChannel-->>FlightService: Consume "ACCOMMODATION_CANCEL_RESERVATION_COMMAND"
+        CommandChannel-->>AccommodationService: Consume "ACCOMMODATION_CANCEL_RESERVATION_COMMAND"
+        AccommodationService->>AccommodationService: Cancel Accommodation reservation
+        AccommodationService->>EventChannel: Publish "ACCOMMODATION_RESERVATION_CANCELLED_EVENT"
+        EventChannel-->>OrderService: Consume "ACCOMMODATION_RESERVATION_CANCELLED_EVENT"
         OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>CommandChannel: Publish "FLIGHT_CANCEL_RESERVATION_COMMAND"
         CommandChannel-->>FlightService: Consume "FLIGHT_CANCEL_RESERVATION_COMMAND"
         FlightService->>FlightService: Cancel Flight reservation
         FlightService->>EventChannel: Publish "FLIGHT_RESERVATION_CANCELLED_EVENT"
         EventChannel-->>OrderService: Consume "FLIGHT_RESERVATION_CANCELLED_EVENT"
-        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>OrderService: Update Order status = "failed"
+        OrderService->>OrderService: Update "Travel Package" Saga
         OrderService->>EventChannel: Publish "ORDER_FAILED_EVENT"
     end
     VehicleHireService->>EventChannel: Publish "VEHICLE_HIRE_RESERVATION_COMPLETED_COMMAND"
     EventChannel-->>OrderService: Consume "VEHICLE_HIRE_RESERVATION_COMPLETED_COMMAND"
-    OrderService->>OrderService: Update "Travel Package" Saga
     OrderService->>OrderService: Update Order status = "completed"
     OrderService->>EventChannel: Publish "ORDER_COMPLETED_EVENT"
-    
+    OrderService->>OrderService: Update "Travel Package" Saga
