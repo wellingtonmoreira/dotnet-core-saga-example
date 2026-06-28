@@ -16,7 +16,7 @@ Saga Pattern example (Orchestration) for the submission of `Travel Package` orde
 
 - [X] Top-level order processing event flow
 - [X] System Context view diagram
-- [ ] Container View diagram
+- [X] Container View diagram
 - [ ] Create template dotnet-core application (AsyncAPI, EF Migrations, OAS)
 - [ ] Design Swagger/OAS (Order API)
 - [ ] Design AsyncAPIs (TBD)
@@ -30,7 +30,7 @@ Saga Pattern example (Orchestration) for the submission of `Travel Package` orde
 
 ### Container View
 
-`//TODO`
+![](README/container-diagram.png)
 
 ### Order Processing Event Flow
 Also visible [on Mermaid.ai](https://mermaid.ai/d/0a251da7-aab8-411d-a0b1-5e067c1ec91d)
